@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+fig/
+GWTune/**
+
+!GWTune/scripts
+!GWTune/scripts/**
+!GWTune/src/
+!GWTune/src/**
+!GWTune/README.md
+!GWTune/requirements.txt
+!GWTune/environment.yaml
+!GWTune/pyproject.toml
+!GWTune/_config.yml

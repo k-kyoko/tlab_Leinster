@@ -1,0 +1,101 @@
+---
+title: "Untitled"
+author: "LipengLin"
+date: "2024-11-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(RcppCNPy)
+library(ggplot2)
+
+getwd()
+```
+
+```{r}
+dt_eps <- fread("/Users/erron_lipenglin/Desktop/Kyoko/trial_params.csv")
+dt_gwd <- fread("/Users/erron_lipenglin/Desktop/Kyoko/trial_values.csv")
+
+# cbind the two data tables by trial_id
+dt <- merge(dt_eps, dt_gwd, by = "trial_id")
+
+# choose row with the minimum `value`, and print it trial_id
+best_trial_id <- dt[which.min(value), trial_id]
+best_trial_id <- best_trial_id - 1
+```
+
+```{r}
+# read npy file
+ot_matrix <- as.matrix(npyLoad(paste0("/Users/erron_lipenglin/Desktop/Kyoko/npy/gw_",
+                                   best_trial_id,".npy")))
+
+# visulize the data
+ot_matrix_melt <- melt(ot_matrix)
+ggplot(ot_matrix_melt, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  labs(title = "Optimal transport matrix",
+       subtitle = paste("Trial ID:", best_trial_id, "; GWD:", round(dt[trial_id == best_trial_id, value], 4), "; eps = ", 
+                        round(dt[trial_id == best_trial_id, param_value], 4)),
+       x = "Target",
+       y = "Source")
+```
+
+
+```{r}
+ggplot(dt, aes(x = param_value, y = value)) +
+  geom_point() +
+  scale_color_identity() +
+  xlab("eps") +
+  ylab("GWD") +
+  scale_y_continuous(
+    limits = c(0, max(dt$value)),
+    breaks = seq(0, max(dt$value), by = 0.1)
+  )
+
+# define visualization range
+gwd_upper <- 1.8
+gwd_lower <- 1.5
+
+eps_upper <- 0.25
+eps_lower <- 0
+```
+
+
+```{r}
+# select all point that 0 < eps < 0.25 and 1 < gwd < 1.5
+dt_select <- dt %>% filter( param_value > eps_lower, param_value < eps_upper, value > gwd_lower, value < gwd_upper)
+
+ggplot(dt, aes(x = param_value, y = value, color = ifelse(param_id %in% dt_select$param_id, "red", "black"))) +
+  geom_point() +
+  scale_color_identity() +
+  xlab("eps") +
+  ylab("GWD") +
+  scale_y_continuous(
+    limits = c(0, max(dt$value)),
+    breaks = seq(0, max(dt$value), by = 0.1)
+  )
+
+# extract the ot_plan correspond to these point
+ot_matrix_select <- lapply(dt_select$trial_id, function(x) as.matrix(npyLoad(paste0("/Users/erron_lipenglin/Desktop/Kyoko/npy/gw_", x - 1,".npy"))))
+
+# calculate the mean of these ot_plan
+ot_matrix_mean <- Reduce(`+`, ot_matrix_select) / length(ot_matrix_select)
+
+
+# visulize the data
+ot_matrix_melt <- melt(ot_matrix_mean)
+ggplot(ot_matrix_melt, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  labs(
+    title = "Optimal Transport Matrix",
+    subtitle = paste("Mean of selected trials; eps in (", eps_lower, ", ", eps_upper, "), GWD in (", gwd_lower, ", ", gwd_upper, ")"),
+    x = "Target",
+    y = "Source"
+  )
+  
+```

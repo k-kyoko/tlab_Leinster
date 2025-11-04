@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  tlab-leinster:
+    build: .
+    platform: linux/arm64/v8
+    ports:
+      - "7001:8888"
+    environment:
+      - TZ=Asia/Tokyo
+      - GRANT_SUDO=yes
+      - JUPYTER_ENABLE_LAB=yes
+      - NB_GID=100
+      - NB_USER=jovyan
+    volumes:
+      - ./work:/home/jovyan/work
+    command: start-notebook.sh --NotebookApp.password='sha1:d992bcf6abdf:fef3dd5ab6af083c58250313704f2e2a56e4509a'
